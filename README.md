@@ -2,6 +2,30 @@
 
 writeup to be written here
 
+
+memo
+---
+
+* docker command
+
+```shell
+docker run -it --rm --entrypoint "/run.sh" -p 8888:8888 -v `pwd`:/src udacity/carnd-term1-starter-kit
+```
+
+2020-09-08, define `class CamModel` and implement `calibrate()` and `undistort()`
+
+
+
+
+
+
+
+
+
+
+
+
+
 In this project, your goal is to write a software pipeline to identify the lane boundaries in a video, but the main output or product we want you to create is a detailed writeup of the project.  Check out the [writeup template](https://github.com/udacity/CarND-Advanced-Lane-Lines/blob/master/writeup_template.md) for this project and use it as a starting point for creating your own writeup.  
 
 Creating a great writeup:
