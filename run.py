@@ -1,4 +1,5 @@
 import glob
+import cv2
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
@@ -11,6 +12,9 @@ def get_calibrated_cam():
     cam.calibrate(cal_images, 9, 6)
     return cam
 
+# Juxtapose two images given by parameters.
+# Default color map is 'viridis' (RGB, used by mpimg)
+# while grayscale images (two dimensional) are considered.
 def visual_compare(img1, title1, img2, title2, fontsize=20):
     f, (ax1, ax2) = plt.subplots(1, 2, figsize=(24, 9))
     f.tight_layout()
