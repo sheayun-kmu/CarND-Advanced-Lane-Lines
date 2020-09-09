@@ -1,6 +1,6 @@
+import logging
 import numpy as np
 import cv2
-import logging
 
 # Binarize image
 # 1. constructor stores the original image

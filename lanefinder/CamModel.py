@@ -1,6 +1,8 @@
+import logging
 import numpy as np
 import cv2
-import logging
+
+from lanefinder.params import perspective_params
 
 # Capture camera model
 # 1. calibrate using a set of images of chessboards
@@ -10,11 +12,14 @@ import logging
 class CamModel:
 
     # Configure logger, initialize distortion parameters
+    # and perspective transform parameters.
     def __init__(self):
         self.log = logging.getLogger(__name__)
         self.log.setLevel(logging.WARN)
         self.mtx = None
         self.dist = None
+        self.M = None
+        self.Minv = None
 
     # Given a set of chessboard images (and # of corners),
     # calibrate the camera and derive the conversion matrix.
@@ -55,3 +60,39 @@ class CamModel:
     def undistort(self, img):
         undist = cv2.undistort(img, self.mtx, self.dist, None, self.mtx)
         return undist
+
+    # Given two sets of four points (corners) - src & dst -
+    # compute perspective transformation (matrix M) and its inverse.
+    def init_perspective(self, src=None, dst=None):
+        if not src:
+            src = np.float32([
+                perspective_params['src']['ul'],
+                perspective_params['src']['ur'],
+                perspective_params['src']['ll'],
+                perspective_params['src']['lr'],
+            ])
+        if not dst:
+            dst = np.float32([
+                perspective_params['dst']['ul'],
+                perspective_params['dst']['ur'],
+                perspective_params['dst']['ll'],
+                perspective_params['dst']['lr'],
+            ])
+        self.M = cv2.getPerspectiveTransform(src, dst)
+        self.Minv = cv2.getPerspectiveTransform(dst, src)
+
+    # Warp image using previously initialized transform.
+    def warp(self, img):
+        warped = cv2.warpPerspective(
+            img, self.M, img.shape[::-1][1:],
+            flags=perspective_params['flags']
+        )
+        return warped
+
+    # Inverse-warp image using previously initialized transform.
+    def inverse_warp(self, img):
+        inverse = cv2.warpPerspective(
+            img, self.M, img.shape[::-1][1:],
+            flags=perspective_params['flags']
+        )
+        return inverse

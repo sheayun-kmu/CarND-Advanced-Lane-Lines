@@ -5,10 +5,12 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 import glob
+import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
+from lanefinder.params import perspective_params
 from lanefinder.ImgPipeline import ImgPipeline
 from lanefinder.CamModel import CamModel
 from lanefinder.Binarizer import Binarizer
@@ -17,6 +19,7 @@ def get_calibrated_cam():
     cam = CamModel()
     cal_images = glob.glob('./camera_cal/calibration*.jpg')
     cam.calibrate(cal_images, 9, 6)
+    cam.init_perspective()
     return cam
 
 # Juxtapose two images given by parameters.
@@ -40,6 +43,33 @@ def test_undistort(imgfile):
     undistorted = cam.undistort(img)
     visual_compare(img, 'Original Image', undistorted, 'Undistorted Image')
 
+def test_warp(imgfile):
+    cam = get_calibrated_cam()
+    img = mpimg.imread(imgfile)
+    undistorted = cam.undistort(img)
+    src = np.array(
+        [
+            perspective_params['src']['ul'], # upper left
+            perspective_params['src']['ur'], # upper right
+            perspective_params['src']['lr'], # lower right
+            perspective_params['src']['ll'], # lower left
+        ],
+        np.int32
+    )
+    dst = np.array(
+        [
+            perspective_params['dst']['ul'], # upper left
+            perspective_params['dst']['ur'], # upper right
+            perspective_params['dst']['lr'], # lower right
+            perspective_params['dst']['ll'], # lower left
+        ],
+        np.int32
+    )
+    warped = cam.warp(undistorted)
+    undistorted = cv2.polylines(undistorted, [src], True, (255, 0, 0), 2)
+    warped = cv2.polylines(warped, [dst], True, (255, 0, 0), 2)
+    visual_compare(undistorted, 'Undistorted Image', warped, 'Warped Image')
+
 def test_binarizer(imgfile):
     cam = get_calibrated_cam()
     img = mpimg.imread(imgfile)
@@ -62,8 +92,12 @@ if __name__ == '__main__':
     test_img_file = './test_images/test1.jpg'
     # test_undistort(test_img_file)
     # test_binarizer(test_img_file)
-    # test_pipeline(test_img_file)
+    test_warp('./test_images/straight_lines1.jpg')
+    test_warp('./test_images/straight_lines2.jpg')
+    test_warp(test_img_file)
+    # test_pipeline('./test_images/straight_lines1.jpg')
 
+    '''
     import os
     from moviepy.editor import VideoFileClip
     test_video_file = './project_video.mp4'
@@ -72,3 +106,4 @@ if __name__ == '__main__':
     clip = VideoFileClip(test_video_file)
     output_clip = clip.fl_image(pipeline.process)
     output_clip.write_videofile(output_pathname, audio=False)
+    '''

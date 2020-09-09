@@ -1,8 +1,9 @@
+import logging
 import glob
 import numpy as np
 import cv2
-import logging
 
+from lanefinder.params import perspective_params
 from lanefinder.CamModel import CamModel
 from lanefinder.Binarizer import Binarizer
 
@@ -16,11 +17,11 @@ from lanefinder.Binarizer import Binarizer
 
 class ImgPipeline:
 
-    # Calibrate camera & setup perspective transformation parameters
+    # Calibrate camera & setup perspective transformation parameters.
     def __init__(self, calib_img_path=None):
         self.log = logging.getLogger(__name__)
         self.log.setLevel(logging.DEBUG)
-        # Get a calibrated camera model for distortion correction
+        # Get a calibrated camera model for distortion correction.
         self.cam = CamModel()
         if calib_img_path:
             pathsel = calib_img_path
@@ -35,11 +36,15 @@ class ImgPipeline:
             import sys
             sys.exit(-1)
         self.cam.calibrate(cal_images, 9, 6)
-        # Initialize a binarizer (with default thresholds)
+        # Initialize the camera's perspective transform.
+        self.cam.init_perspective()
+        # Initialize a binarizer (with default thresholds).
         self.bin = Binarizer()
 
     def process(self, img):
         undistorted = self.cam.undistort(img)
         binarized = self.bin.binarize(undistorted)
         recolorized = np.dstack((binarized, binarized, binarized)) * 255
-        return recolorized
+        result = self.cam.warp(recolorized)
+
+        return result
