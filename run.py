@@ -36,6 +36,10 @@ def test_undistort(imgfile):
 def test_binarizer(imgfile):
     cam = get_calibrated_cam()
     img = mpimg.imread(imgfile)
+    '''
+    img = cv2.imread(imgfile)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    '''
     undistorted = cam.undistort(img)
     binarizer = Binarizer(undistorted)
     bin_image = binarizer.binarize()
