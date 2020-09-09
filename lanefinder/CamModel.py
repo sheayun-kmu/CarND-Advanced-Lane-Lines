@@ -12,7 +12,7 @@ class CamModel:
     # Configure logger, initialize distortion parameters
     def __init__(self):
         self.log = logging.getLogger(__name__)
-        self.log.setLevel(logging.DEBUG)
+        self.log.setLevel(logging.WARN)
         self.mtx = None
         self.dist = None
 

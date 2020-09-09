@@ -60,6 +60,15 @@ def test_pipeline(imgfile):
 
 if __name__ == '__main__':
     test_img_file = './test_images/test1.jpg'
-    test_undistort(test_img_file)
-    test_binarizer(test_img_file)
-    test_pipeline(test_img_file)
+    # test_undistort(test_img_file)
+    # test_binarizer(test_img_file)
+    # test_pipeline(test_img_file)
+
+    import os
+    from moviepy.editor import VideoFileClip
+    test_video_file = './project_video.mp4'
+    pipeline = ImgPipeline()
+    output_pathname = os.path.join(os.getcwd(), "output.mp4")
+    clip = VideoFileClip(test_video_file)
+    output_clip = clip.fl_image(pipeline.process)
+    output_clip.write_videofile(output_pathname, audio=False)

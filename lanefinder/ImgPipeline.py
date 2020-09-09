@@ -41,4 +41,5 @@ class ImgPipeline:
     def process(self, img):
         undistorted = self.cam.undistort(img)
         binarized = self.bin.binarize(undistorted)
-        return binarized
+        recolorized = np.dstack((binarized, binarized, binarized)) * 255
+        return recolorized

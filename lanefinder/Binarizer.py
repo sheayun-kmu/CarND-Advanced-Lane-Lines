@@ -11,7 +11,7 @@ class Binarizer:
     # Constructor - load image & prepare parameters
     def __init__(self, s_thresh=(170, 255), sx_thresh=(20, 100)):
         self.log = logging.getLogger(__name__)
-        self.log.setLevel(logging.DEBUG)
+        self.log.setLevel(logging.WARN)
         self.s_th, self.sx_th = s_thresh, sx_thresh
         self.log.debug("Initialize binarizer based on"
                        " color & gradient thresholds"
