@@ -14,23 +14,21 @@ logging.basicConfig(
 class Binarizer:
 
     # Constructor - load image & prepare parameters
-    def __init__(self, img):
+    def __init__(self, s_thresh=(170, 255), sx_thresh=(20, 100)):
         self.log = logging.getLogger(__name__)
         self.log.setLevel(logging.DEBUG)
-        self.sx, self.sy = img.shape[1::-1]
-        self.img = img
-        self.log.debug("Original image dimension:"
-                       " (%s, %s)" % (self.sx, self.sy))
+        self.s_th, self.sx_th = s_thresh, sx_thresh
+        self.log.debug("Initialize binarizer based on"
+                       " color & gradient thresholds"
+                       " (%s, %s) & (%s, %s)" \
+                       % (*self.s_th, *self.sx_th))
+        self.sx, self.sy = 0, 0
+        self.img = None
 
     # Apply color threshold and gradient threshold.
-    def combined(self, s_thresh=(170, 255), sx_thresh=(20, 100)):
-        self.log.debug("Binarization based on color & gradient thresholds"
-                       " (%s, %s) & (%s, %s)" \
-                       % (*s_thresh, *sx_thresh))
-        # Copy image so that the original remains the same
-        img = np.copy(self.img)
+    def combined(self):
         # Convert to HLS color space and separate channels
-        hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
+        hls = cv2.cvtColor(self.img, cv2.COLOR_RGB2HLS)
         l_channel = hls[:, :, 1]
         s_channel = hls[:, :, 2]
         # Compute Sobel x by taking derivative in x
@@ -39,16 +37,21 @@ class Binarizer:
         sobel = np.uint8(255 * abs_sobelx / np.max(abs_sobelx))
         # Threshold x gradient
         sxbinary = np.zeros_like(sobel)
-        sxbinary[(sobel >= sx_thresh[0]) & (sobel <= sx_thresh[1])] = 1
+        sxbinary[(sobel >= self.sx_th[0]) & (sobel <= self.sx_th[1])] = 1
         # Threshold color channel S
         s_binary = np.zeros_like(s_channel)
-        s_binary[(s_channel >= s_thresh[0]) & (s_channel <= s_thresh[1])] = 1
+        s_binary[(s_channel >= self.s_th[0]) & (s_channel <= self.s_th[1])] = 1
         # Stack each channel
         combined_binary = np.zeros_like(sxbinary)
         combined_binary[(s_binary == 1) | (sxbinary == 1)] = 1
         return combined_binary
 
-    # Binarize loaded image using selected algorithm
-    def binarize(self):
+    # Load & binarize image using selected algorithm
+    def binarize(self, img):
+        self.sx, self.sy = img.shape[1::-1]
+        # Copy image so that the original (parameter) doesn't change
+        self.img = np.copy(img)
+        self.log.debug("Original image dimension:"
+                       " (%s, %s)" % (self.sx, self.sy))
         binary = self.combined()
         return binary

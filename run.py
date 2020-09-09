@@ -41,8 +41,8 @@ def test_binarizer(imgfile):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     '''
     undistorted = cam.undistort(img)
-    binarizer = Binarizer(undistorted)
-    bin_image = binarizer.binarize()
+    binarizer = Binarizer()
+    bin_image = binarizer.binarize(undistorted)
     visual_compare(img, 'Original Image', bin_image, 'Binarized Image')
 
 if __name__ == '__main__':
