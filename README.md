@@ -14,6 +14,9 @@ docker run -it --rm --entrypoint "/run.sh" -p 8888:8888 -v `pwd`:/src udacity/ca
 
 2020-09-08, define `class CamModel` and implement `calibrate()` and `undistort()`
 
+* rubric
+	- https://review.udacity.com/#!/rubrics/1966/view
+
 
 
 
