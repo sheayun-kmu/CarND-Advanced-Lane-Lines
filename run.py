@@ -1,8 +1,15 @@
+import logging
+logging.basicConfig(
+    level=logging.ERROR,
+    format=u'%(asctime)-15s [%(name)s] %(levelname)s: %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 import glob
 import cv2
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
+from lanefinder.ImgPipeline import ImgPipeline
 from lanefinder.CamModel import CamModel
 from lanefinder.Binarizer import Binarizer
 
@@ -45,6 +52,14 @@ def test_binarizer(imgfile):
     bin_image = binarizer.binarize(undistorted)
     visual_compare(img, 'Original Image', bin_image, 'Binarized Image')
 
+def test_pipeline(imgfile):
+    pipeline = ImgPipeline(calib_img_path='./camera_cal/calibration*.jpg')
+    img = mpimg.imread(imgfile)
+    result = pipeline.process(img)
+    visual_compare(img, 'Original Image', result, 'Pipeline Result')
+
 if __name__ == '__main__':
-    # test_undistort('./test_images/test1.jpg')
-    test_binarizer('./test_images/test1.jpg')
+    test_img_file = './test_images/test1.jpg'
+    test_undistort(test_img_file)
+    test_binarizer(test_img_file)
+    test_pipeline(test_img_file)

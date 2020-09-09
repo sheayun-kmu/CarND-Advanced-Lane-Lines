@@ -1,11 +1,6 @@
 import numpy as np
 import cv2
 import logging
-logging.basicConfig(
-    level=logging.WARN,
-    format=u'%(asctime)-15s [%(name)s] %(levelname)s: %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
 
 # Capture camera model
 # 1. calibrate using a set of images of chessboards
