@@ -24,6 +24,9 @@ class Binarizer:
 
     # Apply color threshold and gradient threshold.
     def combined(self, s_thresh=(170, 255), sx_thresh=(20, 100)):
+        self.log.debug("Binarization based on color & gradient thresholds"
+                       " (%s, %s) & (%s, %s)" \
+                       % (*s_thresh, *sx_thresh))
         # Copy image so that the original remains the same
         img = np.copy(self.img)
         # Convert to HLS color space and separate channels
