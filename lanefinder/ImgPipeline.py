@@ -1,8 +1,8 @@
 import logging
-import glob
 import numpy as np
 import cv2
 
+from lanefinder.params import calibration_filepaths
 from lanefinder.params import perspective_params
 from lanefinder.CamModel import CamModel
 from lanefinder.Binarizer import Binarizer
@@ -18,24 +18,19 @@ from lanefinder.Binarizer import Binarizer
 class ImgPipeline:
 
     # Calibrate camera & setup perspective transformation parameters.
-    def __init__(self, calib_img_path=None):
+    def __init__(self, calib_image_files=None):
         self.log = logging.getLogger(__name__)
         self.log.setLevel(logging.DEBUG)
         # Get a calibrated camera model for distortion correction.
         self.cam = CamModel()
-        if calib_img_path:
-            pathsel = calib_img_path
-        else:
-            import os
-            pathsel = os.path.join(
-                os.getcwd(), 'camera_cal', 'calibration*.jpg'
-            )
-        cal_images = glob.glob(pathsel)
-        if len(cal_images) <= 0:
-            self.log.error("No calibration image found by %s" % pathsel)
+        if not calib_image_files:
+            calib_image_files = calibration_filepaths
+        # If we still don't have no calibration image file, it's an error.
+        if not calib_image_files:
+            self.log.error("No calibration image found")
             import sys
             sys.exit(-1)
-        self.cam.calibrate(cal_images, 9, 6)
+        self.cam.calibrate(calib_image_files, 9, 6)
         # Initialize the camera's perspective transform.
         self.cam.init_perspective()
         # Initialize a binarizer (with default thresholds).

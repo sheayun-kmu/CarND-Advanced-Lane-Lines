@@ -83,19 +83,26 @@ def test_binarizer(imgfile):
     visual_compare(img, 'Original Image', bin_image, 'Binarized Image')
 
 def test_pipeline(imgfile):
-    pipeline = ImgPipeline(calib_img_path='./camera_cal/calibration*.jpg')
+    pipeline = ImgPipeline()
     img = mpimg.imread(imgfile)
     result = pipeline.process(img)
     visual_compare(img, 'Original Image', result, 'Pipeline Result')
+
+def test_detector(imgfile):
+    pipeline = ImgPipeline()
+    img = mpimg.imread(imgfile)
+    warped_binary = pipeline.process(img)
+    result = None
 
 if __name__ == '__main__':
     test_img_file = './test_images/test1.jpg'
     # test_undistort(test_img_file)
     # test_binarizer(test_img_file)
-    test_warp('./test_images/straight_lines1.jpg')
-    test_warp('./test_images/straight_lines2.jpg')
-    test_warp(test_img_file)
-    # test_pipeline('./test_images/straight_lines1.jpg')
+    # test_warp('./test_images/straight_lines1.jpg')
+    # test_warp('./test_images/straight_lines2.jpg')
+    # test_warp(test_img_file)
+    test_pipeline('./test_images/straight_lines1.jpg')
+    # test_detector('./test_images/straight_lines1.jpg')
 
     '''
     import os

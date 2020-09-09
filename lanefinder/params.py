@@ -1,6 +1,13 @@
 # Parameter definitions for lane finding
 
+import os
+import glob
 import cv2
+
+# Calibration files are parameterized.
+curpath = os.path.dirname(os.path.abspath(__file__))
+pathsel = os.path.join(curpath, '..', 'camera_cal', 'calibration*.jpg')
+calibration_filepaths = glob.glob(pathsel)
 
 # Perspective transformation parameters
 c, r = 1280, 720
