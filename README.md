@@ -18,6 +18,26 @@ docker run -it --rm --entrypoint "/run.sh" -p 8888:8888 -v `pwd`:/src udacity/ca
 	- https://review.udacity.com/#!/rubrics/1966/view
 
 
+pipeline
+---
+1. Initialize
+	- calibrate camera
+	- setup warp parameters
+
+1. Process
+	- distortion correction
+	- color & gradient threshold (binarize)
+	- perspective transform
+
+1. Find lane lines & compute curvature radius
+	- detect lane lines
+	- determine lane curvature
+
+1. Visualization
+	- visualize & compare
+
+
+
 
 
 
