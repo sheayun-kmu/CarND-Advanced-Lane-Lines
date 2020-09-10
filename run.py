@@ -14,6 +14,7 @@ from lanefinder.params import perspective_params
 from lanefinder.ImgPipeline import ImgPipeline
 from lanefinder.CamModel import CamModel
 from lanefinder.Binarizer import Binarizer
+from lanefinder.LaneDetector import LaneDetector
 
 def get_calibrated_cam():
     cam = CamModel()
@@ -92,7 +93,13 @@ def test_detector(imgfile):
     pipeline = ImgPipeline()
     img = mpimg.imread(imgfile)
     warped_binary = pipeline.process(img)
-    result = None
+    detector = LaneDetector()
+    midpoint = np.int(warped_binary.shape[1] // 2)
+    c1, result1 = detector.detect(warped_binary, (0, midpoint))
+    c2, result2 = detector.detect(warped_binary, (midpoint, warped_binary.shape[1]))
+    recolorized = np.dstack((warped_binary, warped_binary, warped_binary)) * 255
+    result = cv2.addWeighted(recolorized, 0.5, result1 + result2, 0.5, 0)
+    visual_compare(img, 'Original Image', result, 'Sliding Windows')
 
 if __name__ == '__main__':
     test_img_file = './test_images/test1.jpg'
@@ -101,8 +108,10 @@ if __name__ == '__main__':
     # test_warp('./test_images/straight_lines1.jpg')
     # test_warp('./test_images/straight_lines2.jpg')
     # test_warp(test_img_file)
-    test_pipeline('./test_images/straight_lines1.jpg')
-    # test_detector('./test_images/straight_lines1.jpg')
+    # test_pipeline('./test_images/straight_lines1.jpg')
+    test_detector('./test_images/straight_lines1.jpg')
+    test_detector('./test_images/straight_lines2.jpg')
+    test_detector(test_img_file)
 
     '''
     import os

@@ -27,3 +27,12 @@ perspective_params = {
     },
     'flags': cv2.INTER_NEAREST,
 }
+
+# Sliding window parameters
+detector_params = {
+    'sliding_window_params': {
+        'nwindows': 9,
+        'margin': 100,
+        'minpix': 50,
+    },
+}

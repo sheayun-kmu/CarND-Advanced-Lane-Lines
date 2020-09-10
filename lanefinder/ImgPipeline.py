@@ -40,6 +40,6 @@ class ImgPipeline:
         undistorted = self.cam.undistort(img)
         binarized = self.bin.binarize(undistorted)
         recolorized = np.dstack((binarized, binarized, binarized)) * 255
-        result = self.cam.warp(recolorized)
+        result = self.cam.warp(binarized)
 
         return result

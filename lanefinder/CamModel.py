@@ -83,16 +83,18 @@ class CamModel:
 
     # Warp image using previously initialized transform.
     def warp(self, img):
+        r, c = img.shape[:2]
         warped = cv2.warpPerspective(
-            img, self.M, img.shape[::-1][1:],
+            img, self.M, (c, r),
             flags=perspective_params['flags']
         )
         return warped
 
     # Inverse-warp image using previously initialized transform.
     def inverse_warp(self, img):
+        r, c = img.shape[:2]
         inverse = cv2.warpPerspective(
-            img, self.M, img.shape[::-1][1:],
+            img, self.M, (c, r),
             flags=perspective_params['flags']
         )
         return inverse
