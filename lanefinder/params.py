@@ -35,10 +35,11 @@ perspective_params = {
 # Sliding window parameters
 detector_params = {
     'sliding_window_params': {
-        'nwindows': 9,
+        'nwindows': 50,
         'margin': 100,
         'minpix': 50,
     },
     'base_drift_limit': 100,
-    'parallel_check_limit': 100,
+    'parallel_check_limit': 1.0e-03,
+    'failure_acc_limit': 10,
 }

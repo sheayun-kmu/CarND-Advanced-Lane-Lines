@@ -7,6 +7,8 @@ class LaneLine:
         self.base = 0
         # polynomial coefficients for the most recent fit
         self.curr_fit = (0, 0, 0)
+        # number of consecutive fails
+        self.acc_failure = 0
 
     # Update lane line status using a polynomial fit for the
     # newly detected lane line.
@@ -14,4 +16,8 @@ class LaneLine:
         r, c = img_size
         self.curr_fit = fit
         self.base = fit[0] * r ** 2 + fit[1] * r + fit[2]
+        if detected:
+            self.acc_failure = 0
+        else:
+            self.acc_failure += 1
         self.detected = detected

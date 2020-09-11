@@ -72,24 +72,27 @@ class ImgPipeline:
         base_range_l = (0, cols // 2)
         base_range_r = (cols // 2, cols)
         detected_l, detected_r = False, False
-        if self.left.detected:
+        failure_acc_limit = detector_params['failure_acc_limit']
+        if self.left.acc_failure > failure_acc_limit:
             lx, ly, lf = self.detector.search_around_prev(img, self.left)
             detected_l = True
+            self.log.debug("Too many failures for left lane, restart")
         else:
             lx, ly, lf = self.detector.slide_from_peak(img, base_range_l)
             if lf is not (0, 0, 0):
                 detected_l = True
             else:
-                self.log.debug("Lost left line - not detected around prev")
-        if self.right.detected:
+                self.log.debug("Left line not detected around prev")
+        if self.right.acc_failure > failure_acc_limit:
             rx, ry, rf = self.detector.search_around_prev(img, self.right)
             detected_r = True
+            self.log.debug("Too many failures for right lane, restart")
         else:
             rx, ry, rf = self.detector.slide_from_peak(img, base_range_r)
             if rf is not (0, 0, 0):
                 detected_r = True
             else:
-                self.log.debug("Lost right line - not detected around prev")
+                self.log.debug("Right line not detected around prev")
 
 
 

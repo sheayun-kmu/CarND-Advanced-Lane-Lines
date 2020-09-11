@@ -96,19 +96,19 @@ def test_detector(imgfile):
 def detection_pipeline(img, img_pipeline):
     w = pipeline.preprocess(img)
     pipeline.detect_lanes(w)
-    # annotated = pipeline.paint_drivable()
-    annotated = pipeline.debug_img
+    annotated = pipeline.paint_drivable()
+    # annotated = pipeline.debug_img
     return annotated
 
 if __name__ == '__main__':
-    if True:
+    if False:
         test_img_file = './test_images/test1.jpg'
         # test_undistort(test_img_file)
         # test_binarizer(test_img_file)
         # test_warp('./test_images/straight_lines1.jpg')
         # test_warp('./test_images/straight_lines2.jpg')
         # test_warp(test_img_file)
-        # test_detector('./test_images/first.jpg')
+        test_detector('./test_images/first.jpg')
     else:
         import os
         from moviepy.editor import VideoFileClip

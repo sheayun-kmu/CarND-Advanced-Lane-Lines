@@ -46,6 +46,7 @@ class LaneDetector:
         # Initialize an empty list for collecting lane pixel indices.
         lane_pixel_inds = []
         # Step through the windows.
+        delta = 0
         for w in range(self.nwindows):
             # Identify window corners.
             top = r - (w + 1) * window_height
@@ -59,7 +60,13 @@ class LaneDetector:
             # If the window contains more than minpix pixels,
             # recenter the next window by updating base.
             if len(selected) >= self.minpix:
-                base = np.int(np.mean(nzx[selected]))
+                new_base = np.int(np.mean(nzx[selected]))
+                delta = new_base - base
+                base = new_base
+            # Otherwise, move window in the same direction.
+            else:
+                base += delta
+
         # Flatten out the array of indices
         # (previously list of indices for each window).
         lane_pixel_inds = np.concatenate(lane_pixel_inds)
