@@ -71,21 +71,24 @@ class LaneDetector:
 
     # Detect a lane line by searching from previously found line.
     # Expect a two-channel (binary) image as input.
-    def search_from_previous(self, img, img_dbg=False):
+    def search_around_prev(self, img, line):
         r, c = img.shape[:2]
         # Get x & y coordinates of all the nonzero pixels in the image.
         nonzero = img.nonzero()
         nzx, nzy = np.array(nonzero[1]), np.array(nonzero[0])
         # Collect nonzero pixels around the previously found
         # second-order polynomial with margin.
-        c = self.coeffs
+        c = line.curr_fit
         m = self.margin
         lane_pixel_inds = (
             (nzx >= c[0] * nzy ** 2 + c[1] * nzy + c[2] - m) & \
-            (nzx <= c[0] * nzy ** 2 + c[1] * nzy + c[1] + m)
+            (nzx <= c[0] * nzy ** 2 + c[1] * nzy + c[2] + m)
         )
         # Let x and y contain coordinates (array) of lane line pixels.
         x, y = nzx[lane_pixel_inds], nzy[lane_pixel_inds]
-        fit = np.polyfit(y, x, 2)
+        try:
+            fit = np.polyfit(y, x, 2)
+        except:
+            fit = (0, 0, 0)
 
         return x, y, fit

@@ -40,5 +40,5 @@ detector_params = {
         'minpix': 50,
     },
     'base_drift_limit': 100,
-    'parallel_check_limit': 1e-03,
+    'parallel_check_limit': 100,
 }
