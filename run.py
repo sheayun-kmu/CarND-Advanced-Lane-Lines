@@ -83,48 +83,28 @@ def test_binarizer(imgfile):
     bin_image = binarizer.binarize(undistorted)
     visual_compare(img, 'Original Image', bin_image, 'Binarized Image')
 
-def test_pipeline(imgfile):
-    pipeline = ImgPipeline()
-    img = mpimg.imread(imgfile)
-    result = pipeline.process(img)
-    visual_compare(img, 'Original Image', result, 'Pipeline Result')
-
 def test_detector(imgfile):
     pipeline = ImgPipeline()
     img = mpimg.imread(imgfile)
-    warped_binary = pipeline.process(img)
-    detector_l = LaneDetector()
-    detector_r = LaneDetector()
-    midpoint = np.int(warped_binary.shape[1] // 2)
-    c1 = detector_l.detect(warped_binary, (0, midpoint))
-    r1 = detector_l.get_overlay()
-    c2 = detector_r.detect(warped_binary, (midpoint, warped_binary.shape[1]))
-    r2 = detector_r.get_overlay()
-    img1, img2 = pipeline.paint_drivable(
-        pipeline.get_undistorted(), r1 + r2, c1, c2
-    )
-    visual_compare(img, 'Original Image', img2, 'Lane Detected')
+    warped_binary = pipeline.preprocess(img)
+    pipeline.detect_lanes(warped_binary)
+    annotated = pipeline.paint_drivable()
+    visual_compare(pipeline.get_undistorted(), 'Undistorted Image',
+                   annotated, 'Lane Detected')
 
-def detection_pipeline(img, img_pipeline, d1, d2):
-    r = pipeline.process(img)
-    m = img.shape[1] // 2
-    c1 = d1.detect(r, (0, m))
-    o1 = d1.get_overlay()
-    c2 = d2.detect(r, (m, img.shape[1]))
-    o2 = d2.get_overlay()
-    img1, img2 = pipeline.paint_drivable(
-        pipeline.get_undistorted(), o1 + o2, c1, c2
-    )
-    return img2
+def detection_pipeline(img, img_pipeline):
+    w = pipeline.preprocess(img)
+    pipeline.detect_lanes(w)
+    annotated = pipeline.paint_drivable()
+    return annotated
 
 if __name__ == '__main__':
     test_img_file = './test_images/test1.jpg'
-    # test_undistort(test_img_file)
-    # test_binarizer(test_img_file)
-    # test_warp('./test_images/straight_lines1.jpg')
-    # test_warp('./test_images/straight_lines2.jpg')
-    # test_warp(test_img_file)
-    # test_pipeline('./test_images/straight_lines1.jpg')
+    test_undistort(test_img_file)
+    test_binarizer(test_img_file)
+    test_warp('./test_images/straight_lines1.jpg')
+    test_warp('./test_images/straight_lines2.jpg')
+    test_warp(test_img_file)
     test_detector(test_img_file)
 
     '''
@@ -138,9 +118,7 @@ if __name__ == '__main__':
     output_pathname = os.path.join(os.getcwd(), "output.mp4")
     clip = VideoFileClip(test_video_file)
     output_clip = clip.fl_image(
-        lambda x:detection_pipeline(
-            x, pipeline, detector_l, detector_r
-        )
+        lambda x:detection_pipeline(x, pipeline)
     )
     output_clip.write_videofile(output_pathname, audio=False)
     '''

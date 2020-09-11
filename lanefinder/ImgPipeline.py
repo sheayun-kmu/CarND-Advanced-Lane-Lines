@@ -4,8 +4,11 @@ import cv2
 
 from lanefinder.params import camera_params
 from lanefinder.params import perspective_params
+from lanefinder.params import detector_params
 from lanefinder.CamModel import CamModel
 from lanefinder.Binarizer import Binarizer
+from lanefinder.LaneDetector import LaneDetector
+from lanefinder.LaneLine import LaneLine
 
 # Image processing pipeline
 # 1. initialize
@@ -38,13 +41,17 @@ class ImgPipeline:
         # We want to keep the undistorted version
         # (needed for later rendering of debugging display).
         self.undistorted = None
+        # LaneDetector instance (used for both left & right lane lines)
+        self.detector = LaneDetector()
+        # Left and Right lane lines
+        self.left, self.right = LaneLine(), LaneLine()
 
     # Getter method for the undistorted version kept in the pipeline.
     def get_undistorted(self):
         return self.undistorted
 
     # Undistort, binarize, and warp (to bird's eye view) image.
-    def process(self, img):
+    def preprocess(self, img):
         undistorted = self.cam.undistort(img)
         # We keep a copy of this undistorted image.
         self.undistorted = np.copy(undistorted)
@@ -52,15 +59,55 @@ class ImgPipeline:
         result = self.cam.warp(binarized)
         return result
 
+    # Detect left & right lane lines and update their states;
+    # a binary warped image is expected.
+    def detect_lanes(self, img):
+        rows, cols = img.shape[:2]
+        # Calculate horizontal range to begin with, for
+        # left & right lane lines, respectively.
+        base_range_l = (0, cols // 2)
+        base_range_r = (cols // 2, cols)
+        if self.left.detected:
+            lx, ly, lf = self.detector.search_around_prev(img, self.left)
+        else:
+            lx, ly, lf = self.detector.slide_from_peak(img, base_range_l)
+        if self.right.detected:
+            rx, ry, rf = self.detector.search_around_prev(img, self.right)
+        else:
+            rx, ry, rf = self.detector.slide_from_peak(img, base_range_r)
+        # Sanity check #1 - whether each lane line detected is
+        # close to the previously detected one.
+        # If the check fails, fall back to the previously detected lane line.
+        base_l = lf[0] * rows ** 2 + lf[1] * rows + lf[2]
+        base_r = rf[0] * rows ** 2 + rf[1] * rows + rf[2]
+        base_drift_limit = detector_params['base_drift_limit']
+        if self. left.detected \
+           and np.abs(base_l - self.left.base) > base_drift_limit:
+            lf = self.left.curr_fit
+        if self.right.detected \
+           and np.abs(base_r - self.right.base) > base_drift_limit:
+            rf = self.right.curr_fit
+        # Sanity check #2 - whether the two detected lane lines are
+        # approximately parallel.
+        # If the check fails, discard both the detected lane lines.
+        parallel_check_limit = detector_params['parallel_check_limit']
+        if np.abs(lf[0] - rf[0]) > parallel_check_limit:
+            lf, rf = self.left.curr_fit, self.right.curr_fit
+        # Now we have the currently determined lane lines
+        # (though possibly fallen back to the previous ones),
+        # we update the lane line status.
+        self.left.update((rows, cols), lf)
+        self.right.update((rows, cols), rf)
+
     # Paint drivable areas (between left & right lane lines).
-    def paint_drivable(self, orig_img, overlay, left_coeffs, right_coeffs,
-                       paint_color=(0, 255, 0)):
-        lc, rc = left_coeffs, right_coeffs
+    def paint_drivable(self, paint_color=(0, 255, 0)):
+        img = self.undistorted
+        lc, rc = self.left.curr_fit, self.right.curr_fit
         # Initialize a blank image the same size as the given.
-        img = np.zeros_like(orig_img, dtype=np.uint8)
+        overlay = np.zeros_like(img, dtype=np.uint8)
         # Cacluate the second-order polynomials for
         # left & right lane line approximation.
-        y = np.linspace(0, img.shape[0] - 1, img.shape[0])
+        y = np.linspace(0, overlay.shape[0] - 1, overlay.shape[0])
         lx = lc[0] * y ** 2 + lc[1] * y + lc[2]
         rx = rc[0] * y ** 2 + rc[1] * y + rc[2]
         # Collect points on left & right (detected) lane lines.
@@ -73,5 +120,5 @@ class ImgPipeline:
         # Inverse-warp the painted image to form an overlay.
         unwarped = self.cam.inverse_warp(overlay)
         # Stack the two (original & painted) images.
-        result = cv2.addWeighted(orig_img, 0.7, unwarped, 0.3, 0)
-        return img, result
+        result = cv2.addWeighted(img, 0.7, unwarped, 0.3, 0)
+        return result
