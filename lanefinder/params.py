@@ -7,17 +7,21 @@ import cv2
 # Calibration files are parameterized.
 curpath = os.path.dirname(os.path.abspath(__file__))
 pathsel = os.path.join(curpath, '..', 'camera_cal', 'calibration*.jpg')
-calibration_filepaths = glob.glob(pathsel)
+camera_params = {
+    'filepaths': glob.glob(pathsel),
+    'nx': 9,
+    'ny': 6,
+}
 
 # Perspective transformation parameters
-c, r = 1280, 720
-h_offset = 200
+c, r = 1280, 720        # image x & y size
+h_offset = 200          # (left & right) margin for dst
 perspective_params = {
     'src': {
-        'ul': [593, 450],
-        'ur': [687, 450],
-        'll': [220, 700],
-        'lr': [1090, 700],
+        'ul': [593, 450],       # upper left
+        'ur': [687, 450],       # upper right
+        'll': [220, 700],       # lower left
+        'lr': [1090, 700],      # lower right
     },
     'dst': {
         'ul': [0 + h_offset, 0],

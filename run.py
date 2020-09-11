@@ -93,21 +93,29 @@ def test_detector(imgfile):
     pipeline = ImgPipeline()
     img = mpimg.imread(imgfile)
     warped_binary = pipeline.process(img)
-    detector = LaneDetector()
+    detector_l = LaneDetector()
+    detector_r = LaneDetector()
     midpoint = np.int(warped_binary.shape[1] // 2)
-    c1, result1 = detector.detect(warped_binary, (0, midpoint))
-    c2, result2 = detector.detect(warped_binary, (midpoint, warped_binary.shape[1]))
-    recolorized = np.dstack((warped_binary, warped_binary, warped_binary)) * 255
-    result = pipeline.annotate(img, result1 + result2)
-    visual_compare(img, 'Original Image', result, 'Sliding Windows')
+    c1 = detector_l.detect(warped_binary, (0, midpoint))
+    r1 = detector_l.get_overlay()
+    c2 = detector_r.detect(warped_binary, (midpoint, warped_binary.shape[1]))
+    r2 = detector_r.get_overlay()
+    img1, img2 = pipeline.paint_drivable(
+        pipeline.get_undistorted(), r1 + r2, c1, c2
+    )
+    visual_compare(img, 'Original Image', img2, 'Lane Detected')
 
-def detection_pipeline(img, img_pipeline, detect_pipeline, annotate_pipeline):
-    r = img_pipeline(img)
+def detection_pipeline(img, img_pipeline, d1, d2):
+    r = pipeline.process(img)
     m = img.shape[1] // 2
-    coeff1, o1 = detect_pipeline(r, (0, m))
-    coeff2, o2 = detect_pipeline(r, (m, img.shape[1]))
-    o = annotate_pipeline(img, o1 + o2)
-    return o
+    c1 = d1.detect(r, (0, m))
+    o1 = d1.get_overlay()
+    c2 = d2.detect(r, (m, img.shape[1]))
+    o2 = d2.get_overlay()
+    img1, img2 = pipeline.paint_drivable(
+        pipeline.get_undistorted(), o1 + o2, c1, c2
+    )
+    return img2
 
 if __name__ == '__main__':
     test_img_file = './test_images/test1.jpg'
@@ -117,19 +125,22 @@ if __name__ == '__main__':
     # test_warp('./test_images/straight_lines2.jpg')
     # test_warp(test_img_file)
     # test_pipeline('./test_images/straight_lines1.jpg')
-    # test_detector('./test_images/straight_lines1.jpg')
-    # test_detector('./test_images/straight_lines2.jpg')
-    # test_detector(test_img_file)
+    test_detector(test_img_file)
 
+    '''
     import os
     from moviepy.editor import VideoFileClip
     test_video_file = './project_video.mp4'
     # test_video_file = './challenge_video.mp4'
     pipeline = ImgPipeline()
-    detector = LaneDetector()
+    detector_l = LaneDetector()
+    detector_r = LaneDetector()
     output_pathname = os.path.join(os.getcwd(), "output.mp4")
     clip = VideoFileClip(test_video_file)
-    output_clip = clip.fl_image(lambda x:detection_pipeline(
-        x, pipeline.process, detector.detect, pipeline.annotate)
+    output_clip = clip.fl_image(
+        lambda x:detection_pipeline(
+            x, pipeline, detector_l, detector_r
+        )
     )
     output_clip.write_videofile(output_pathname, audio=False)
+    '''

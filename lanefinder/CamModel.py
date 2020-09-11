@@ -2,6 +2,7 @@ import logging
 import numpy as np
 import cv2
 
+from lanefinder.params import camera_params
 from lanefinder.params import perspective_params
 
 # Capture camera model
@@ -23,7 +24,12 @@ class CamModel:
 
     # Given a set of chessboard images (and # of corners),
     # calibrate the camera and derive the conversion matrix.
-    def calibrate(self, image_files, nx, ny):
+    def calibrate(self, image_files, nx=0, ny=0):
+        # Read from configuration if nx & ny are not specified.
+        if nx == 0:
+            nx = camera_params['nx']
+        if ny == 0:
+            ny = camera_params['ny']
         # Initialize empty imgpoints and objpoints
         imgpoints = []
         objpoints = []
