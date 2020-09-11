@@ -11,7 +11,7 @@ calibration_filepaths = glob.glob(pathsel)
 
 # Perspective transformation parameters
 c, r = 1280, 720
-h_offset = 300
+h_offset = 200
 perspective_params = {
     'src': {
         'ul': [593, 450],

@@ -27,10 +27,11 @@ class LaneDetector:
         self.margin = params['margin']
         self.minpix = params['minpix']
         self.coeffs = (0, 0, 0)
+        self.prev = False
         self.log.debug("A lane detector instance has initialized.")
 
     # Detect a lane line by a histogram peak and sliding window.
-    # Expect a two-channel (binary or grayscale) image as input.
+    # Expect a two-channel (binary) image as input.
     def slide_from_peak(self, img, starting_range):
         lbound, rbound = starting_range
         r, c = img.shape[:2]
@@ -79,12 +80,36 @@ class LaneDetector:
         overlay[y, x] = [0, 0, 255]
         self.coeffs = np.polyfit(y, x, 2)
         self.annotate_polynomial(overlay)
+        # Set flag to indicate a polynomial has been fit.
+        self.prev = True
 
         return self.coeffs, overlay
 
     # Detect a lane line by searching from previously found line.
-    def search_from_previous(self):
-        return None
+    # Expect a two-channel (binary) image as input.
+    def search_from_previous(self, img):
+        r, c = img.shape[:2]
+        # Initialize a copy (but 3-channel color) image
+        # for visualization (debugging purposes)
+        overlay = np.zeros((r, c, 3), dtype=np.uint8)
+        # Get x & y coordinates of all the nonzero pixels in the image.
+        nonzero = img.nonzero()
+        nzx, nzy = np.array(nonzero[1]), np.array(nonzero[0])
+        # Collect nonzero pixels around the previously found
+        # second-order polynomial with margin.
+        c = self.coeffs
+        m = self.margin
+        lane_pixel_inds = (
+            (nzx >= c[0] * nzy ** 2 + c[1] * nzy + c[2] - m) & \
+            (nzx <= c[0] * nzy ** 2 + c[1] * nzy + c[1] + m)
+        )
+        # Let x and y contain coordinates (array) of lane line pixels.
+        x, y = nzx[lane_pixel_inds], nzy[lane_pixel_inds]
+        # Paint pixels on lane line blue.
+        overlay[y, x] = [0, 0, 255]
+        self.coeffs = np.polyfit(y, x, 2)
+
+        return self.coeffs, overlay
 
     # Given an image, render the fitted second order polynomial above it.
     def annotate_polynomial(self, img):
@@ -96,9 +121,16 @@ class LaneDetector:
             except TypeError:
                 x = 1 * y ** 2 + 1 * y
             x, y = np.int(x), np.int(y)
-            img[y, x - 2:x + 2] = [255, 255, 0]
+            img[y, x - 2:x + 2] = [255, 0, 0]
 
     # Detect a lane line by an algorithm selected based on the
     # previous state and situation.
     def detect(self, img, starting_range):
-        return self.slide_from_peak(img, starting_range)
+        if False and self.prev:
+            try:
+                r = self.search_from_previous(img)
+            except:
+                r = self.slide_from_peak(img, starting_range)
+        else:
+            r = self.slide_from_peak(img, starting_range)
+        return r

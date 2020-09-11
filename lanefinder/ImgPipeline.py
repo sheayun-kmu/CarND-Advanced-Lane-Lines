@@ -43,3 +43,10 @@ class ImgPipeline:
         result = self.cam.warp(binarized)
 
         return result
+
+    # Annotate img1 with img2, where img1 is the original image undistorted
+    # while img2 is in the warped perspective.
+    def annotate(self, img1, img2, r1=0.5, r2=0.5):
+        inverse_warped = self.cam.inverse_warp(img2)
+        img = cv2.addWeighted(img1, r1, inverse_warped, r2, 0)
+        return img

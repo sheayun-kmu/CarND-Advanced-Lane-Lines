@@ -94,7 +94,7 @@ class CamModel:
     def inverse_warp(self, img):
         r, c = img.shape[:2]
         inverse = cv2.warpPerspective(
-            img, self.M, (c, r),
+            img, self.Minv, (c, r),
             flags=perspective_params['flags']
         )
         return inverse
