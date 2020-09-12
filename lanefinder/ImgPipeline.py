@@ -5,6 +5,9 @@ import cv2
 from lanefinder.params import camera_params
 from lanefinder.params import perspective_params
 from lanefinder.params import detector_params
+from lanefinder.params import conversion_params
+from lanefinder.params import display_params
+
 from lanefinder.CamModel import CamModel
 from lanefinder.Binarizer import Binarizer
 from lanefinder.LaneDetector import LaneDetector
@@ -127,11 +130,28 @@ class ImgPipeline:
             lf, rf = self.left.curr_fit, self.right.curr_fit
             detected_l, detected_r = False, False
             self.log.debug("Both lines discarded - parallel check failed")
+        # Calculate the radius of curvature (in meters) for
+        # each of left & right lane lines, respectively.
+        mx = conversion_params['meters_per_pixel_x']
+        my = conversion_params['meters_per_pixel_y']
+        slf0 = lf[0] * mx / my ** 2
+        slf1 = lf[1] * mx / my
+        srf0 = rf[0] * mx / my ** 2
+        srf1 = rf[1] * mx / my
+        # Calculate curvature at the bottom of the image.
+        left_curverad = (1 + (2 * slf0 * rows + slf1) ** 2) ** (3 / 2) \
+                      / np.abs(2 * slf0)
+        right_curverad = (1 + (2 * srf0 * rows + srf1) ** 2) ** (3 / 2) \
+                       / np.abs(2 * srf0)
+        # Sanity check for radius of curvature.
+
+
+
         # Now we have the currently determined lane lines
         # (though possibly fallen back to the previous ones),
         # we update the lane line status.
-        self.left.update((rows, cols), lf, detected_l)
-        self.right.update((rows, cols), rf, detected_r)
+        self.left.update((rows, cols), lf, left_curverad, detected_l)
+        self.right.update((rows, cols), rf, right_curverad, detected_r)
 
     # Paint drivable areas (between left & right lane lines).
     def paint_drivable(self, paint_color=(0, 255, 0)):
@@ -156,6 +176,44 @@ class ImgPipeline:
         # Stack the two (original & painted) images.
         result = cv2.addWeighted(img, 0.7, unwarped, 0.3, 0)
         return result
+
+    # Annotate the resulting image with text containing the following info:
+    # - radius of curvature (in meters)
+    # - vehicle distance from center of the lane
+    def annotate_info(self, img):
+        # Fetch display parameters (from configuration)
+        font = display_params['text_font']
+        bottom_left = display_params['text_position']
+        font_scale = display_params['font_scale']
+        font_color = display_params['font_color']
+        line_type = display_params['line_type']
+
+        # Average left & right curvature radius to display.
+        curve_rad = np.int((self.left.curverad + self.right.curverad) / 2)
+        # Center point of two lane lines; convert to meters.
+        mx = conversion_params['meters_per_pixel_x']
+        center = (self.left.base + self.right.base) / 2
+        offset = img.shape[1] / 2 - center
+        offset_meters = offset * mx
+
+        info_str = 'Raduis of Curvature = %5d(m)' % curve_rad
+        position = bottom_left
+        img = cv2.putText(
+            img, info_str, position,
+            font, font_scale, font_color,
+            line_type
+        )
+        info_str = 'Vehicle is %.2fm %s of center' % (
+            np.abs(offset_meters), 'left' if offset < 0 else 'right'
+        )
+        position = (bottom_left[0], bottom_left[1] + 60)
+        img = cv2.putText(
+            img, info_str, position,
+            font, font_scale, font_color,
+            line_type
+        )
+
+        return img
 
     # Componse an image for lane detection debugging.
     def annotate_debug_img(self, lx, ly, lf, rx, ry, rf):

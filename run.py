@@ -88,8 +88,9 @@ def test_detector(imgfile):
     img = mpimg.imread(imgfile)
     warped_binary = pipeline.preprocess(img)
     pipeline.detect_lanes(warped_binary)
-    # annotated = pipeline.paint_drivable()
-    annotated = pipeline.debug_img
+    annotated = pipeline.paint_drivable()
+    # annotated = pipeline.debug_img
+    annotated = pipeline.annotate_info(annotated)
     visual_compare(pipeline.get_undistorted(), 'Undistorted Image',
                    annotated, 'Lane Detected')
 
@@ -98,6 +99,7 @@ def detection_pipeline(img, img_pipeline):
     pipeline.detect_lanes(w)
     annotated = pipeline.paint_drivable()
     # annotated = pipeline.debug_img
+    annotated = pipeline.annotate_info(annotated)
     return annotated
 
 if __name__ == '__main__':
@@ -108,13 +110,13 @@ if __name__ == '__main__':
         # test_warp('./test_images/straight_lines1.jpg')
         # test_warp('./test_images/straight_lines2.jpg')
         # test_warp(test_img_file)
-        test_detector('./test_images/first.jpg')
+        test_detector(test_img_file)
     else:
         import os
         from moviepy.editor import VideoFileClip
-        # test_video_file = './project_video.mp4'
+        test_video_file = './project_video.mp4'
         # test_video_file = './20.mp4'
-        test_video_file = './challenge_video.mp4'
+        # test_video_file = './challenge_video.mp4'
         pipeline = ImgPipeline()
         detector_l = LaneDetector()
         detector_r = LaneDetector()

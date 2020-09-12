@@ -35,11 +35,26 @@ perspective_params = {
 # Sliding window parameters
 detector_params = {
     'sliding_window_params': {
-        'nwindows': 50,
+        'nwindows': 15,
         'margin': 100,
         'minpix': 50,
     },
     'base_drift_limit': 100,
     'parallel_check_limit': 1.0e-03,
     'failure_acc_limit': 10,
+}
+
+# Conversion into real-world measurement
+conversion_params = {
+    'meters_per_pixel_x': 3.7 / 835,
+    'meters_per_pixel_y': 30 / 720,
+}
+
+# Display paramters
+display_params = {
+    'text_font': cv2.FONT_HERSHEY_SIMPLEX,
+    'text_position': (50, 50),
+    'font_scale': 1,
+    'font_color': (255, 255, 255),
+    'line_type': 2,
 }
