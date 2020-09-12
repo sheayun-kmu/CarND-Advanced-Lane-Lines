@@ -38,7 +38,14 @@ perspective_params = {
     'flags': cv2.INTER_NEAREST,
 }
 
-# Sliding window parameters
+# Conversion into real-world measurement
+conversion_params = {
+    'meters_per_pixel_x': 3.7 / 835,
+    'meters_per_pixel_y': 30 / 720,
+}
+
+# Lande detection parameters
+px_per_meter = 1 / conversion_params['meters_per_pixel_x']
 detector_params = {
     'sliding_window_params': {
         'nwindows': 15,
@@ -47,13 +54,9 @@ detector_params = {
     },
     'base_drift_limit': 100,
     'parallel_check_limit': 1.0e-03,
+    'curvature_diff_limit': 2.0e-03,
+    'lane_width_lower_bound': 3 / px_per_meter,
     'failure_acc_limit': 10,
-}
-
-# Conversion into real-world measurement
-conversion_params = {
-    'meters_per_pixel_x': 3.7 / 835,
-    'meters_per_pixel_y': 30 / 720,
 }
 
 # Display paramters
