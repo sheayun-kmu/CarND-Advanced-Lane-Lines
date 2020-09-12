@@ -114,9 +114,9 @@ if __name__ == '__main__':
     else:
         import os
         from moviepy.editor import VideoFileClip
-        test_video_file = './project_video.mp4'
+        # test_video_file = './project_video.mp4'
         # test_video_file = './20.mp4'
-        # test_video_file = './challenge_video.mp4'
+        test_video_file = './challenge_video.mp4'
         pipeline = ImgPipeline()
         detector_l = LaneDetector()
         detector_r = LaneDetector()

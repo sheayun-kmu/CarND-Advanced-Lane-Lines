@@ -147,11 +147,36 @@ class ImgPipeline:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         # Now we have the currently determined lane lines
         # (though possibly fallen back to the previous ones),
         # we update the lane line status.
-        self.left.update((rows, cols), lf, left_curverad, detected_l)
-        self.right.update((rows, cols), rf, right_curverad, detected_r)
+        self.left.update(
+            (rows, cols), lx, ly, lf,
+            left_curverad, detected_l
+        )
+        self.right.update(
+            (rows, cols), rx, ry, rf,
+            right_curverad, detected_r
+        )
 
     # Paint drivable areas (between left & right lane lines).
     def paint_drivable(self, paint_color=(0, 255, 0)):
@@ -171,6 +196,10 @@ class ImgPipeline:
         pts = np.hstack((pts_l, pts_r))
         # Paint the drivable area on the blank image (on warped space).
         cv2.fillPoly(overlay, np.int_([pts]), paint_color)
+        # Red pixels for left lane line, blue for right.
+        # This is done after the green so that pixels stand out.
+        overlay[self.left.y, self.left.x] = [255, 0, 0]
+        overlay[self.right.y, self.right.x] = [0, 0, 255]
         # Inverse-warp the painted image to form an overlay.
         unwarped = self.cam.inverse_warp(overlay)
         # Stack the two (original & painted) images.
