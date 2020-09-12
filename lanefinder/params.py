@@ -13,6 +13,12 @@ camera_params = {
     'ny': 6,
 }
 
+# Binarizer parameters (thresholds).
+binarizer_params = {
+    's_channel_color_threshold': (170, 255),
+    'x_gradient_threshold': (20, 100),
+}
+
 # Perspective transformation parameters
 c, r = 1280, 720        # image x & y size
 h_offset = 200          # (left & right) margin for dst

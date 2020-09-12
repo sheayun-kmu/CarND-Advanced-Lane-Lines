@@ -2,6 +2,8 @@ import logging
 import numpy as np
 import cv2
 
+from lanefinder.params import binarizer_params as params
+
 # Binarize image
 # 1. constructor stores the original image
 # 2. binarize() returns a binarized version of the original image
@@ -9,7 +11,11 @@ import cv2
 class Binarizer:
 
     # Constructor - load image & prepare parameters
-    def __init__(self, s_thresh=(170, 255), sx_thresh=(20, 100)):
+    def __init__(self, s_thresh=None, sx_thresh=None):
+        if not s_thresh:
+            s_thresh = params['s_channel_color_threshold']
+        if not sx_thresh:
+            sx_thresh = params['x_gradient_threshold']
         self.log = logging.getLogger(__name__)
         self.log.setLevel(logging.WARN)
         self.s_th, self.sx_th = s_thresh, sx_thresh
