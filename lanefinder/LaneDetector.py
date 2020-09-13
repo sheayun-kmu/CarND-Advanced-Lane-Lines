@@ -9,12 +9,12 @@ from lanefinder.params import detector_params
 #    - parameter initialization
 # 2. histogram peak & sliding window
 #    - input: binary image (thresholded bird's eye view)
-#    - state change: fitted second-order polynomial (coefficients)
-#    - output: fitted polynomial (coefficients)
+#    - state change: fit second-order polynomial (coefficients)
+#    - output: fit polynomial (coefficients)
 # 3. search from previously detected lane line
 #    - input: binary image (thresholded bird's eye view)
-#    - state change: fitted second-order polynomial (coefficients)
-#    - output: fitted polynomial (coefficients)
+#    - state change: fit second-order polynomial (coefficients)
+#    - output: fit polynomial (coefficients)
 
 class LaneDetector:
 

@@ -55,8 +55,17 @@ detector_params = {
     'base_drift_limit': 100,
     'parallel_check_limit': 1.0e-03,
     'curvature_diff_limit': 2.0e-03,
-    'lane_width_lower_bound': 3 / px_per_meter,
+    'lane_width_lower_bound': 3.4 * px_per_meter,
+    'lane_width_upper_bound': 4.0 * px_per_meter,
     'failure_acc_limit': 10,
+    'number_of_fit_records': 5,
+    'fit_avg_weights': [0.03, 0.07, 0.2, 0.3, 0.4],
+    'sanity_check_params': {
+        'sanity_check_base_drift': True,
+        'sanity_check_curvature_diff': True,
+        'sanity_check_lane_width': True,
+        'sanity_check_parallel': True,
+    },
 }
 
 # Display paramters

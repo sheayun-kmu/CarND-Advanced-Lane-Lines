@@ -87,10 +87,10 @@ def test_detector(imgfile):
     pipeline = ImgPipeline()
     img = mpimg.imread(imgfile)
     warped_binary = pipeline.preprocess(img)
-    pipeline.detect_lanes(warped_binary)
+    pipeline.detect_lanes(warped_binary, True)
     annotated = pipeline.paint_drivable()
-    # annotated = pipeline.debug_img
     annotated = pipeline.annotate_info(annotated)
+    # annotated = pipeline.debug_img
     visual_compare(pipeline.get_undistorted(), 'Undistorted Image',
                    annotated, 'Lane Detected')
 
@@ -104,9 +104,9 @@ def detection_pipeline(img, img_pipeline):
 
 if __name__ == '__main__':
     if False:
-        test_img_file = './test_images/test1.jpg'
+        test_img_file = './test_images/first.jpg'
         # test_undistort(test_img_file)
-        test_binarizer(test_img_file)
+        # test_binarizer(test_img_file)
         # test_warp('./test_images/straight_lines1.jpg')
         # test_warp('./test_images/straight_lines2.jpg')
         # test_warp(test_img_file)

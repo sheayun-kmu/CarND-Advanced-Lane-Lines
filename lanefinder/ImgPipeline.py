@@ -74,126 +74,164 @@ class ImgPipeline:
         # left & right lane lines, respectively.
         base_range_l = (0, cols // 2)
         base_range_r = (cols // 2, cols)
-        detected_l, detected_r = False, False
         failure_acc_limit = detector_params['failure_acc_limit']
-        if self.left.acc_failure > failure_acc_limit:
-            lx, ly, lf = self.detector.search_around_prev(img, self.left)
-            detected_l = True
-            self.log.debug("Too many failures for left lane, restart")
-        else:
+        left_reset, right_reset = False, False
+        if self.left.very_first() == True \
+           or self.left.acc_failure >= failure_acc_limit:
             lx, ly, lf = self.detector.slide_from_peak(img, base_range_l)
-            if lf is not (0, 0, 0):
-                detected_l = True
+            refresh_l = True
+            if self.left.very_first() == True:
+                self.log.debug("The very first detection trial for left")
             else:
-                self.log.debug("Left line not detected around prev")
-        if self.right.acc_failure > failure_acc_limit:
-            rx, ry, rf = self.detector.search_around_prev(img, self.right)
-            detected_r = True
-            self.log.debug("Too many failures for right lane, restart")
+                left_reset = True
+                self.log.debug("Too many failures for left lane, restart")
         else:
+            lx, ly, lf = self.detector.search_around_prev(img, self.left)
+            refresh_l = False
+        if self.right.very_first() == True \
+           or self.right.acc_failure >= failure_acc_limit:
             rx, ry, rf = self.detector.slide_from_peak(img, base_range_r)
-            if rf is not (0, 0, 0):
-                detected_r = True
+            refresh_r = True
+            if self.right.very_first() == True:
+                self.log.debug("The very first detection trial for right")
             else:
-                self.log.debug("Right line not detected around prev")
+                right_reset = True
+                self.log.debug("Too many failures for right lane, restart")
+        else:
+            rx, ry, rf = self.detector.search_around_prev(img, self.right)
+            refresh_r = False
+
+        # Perform sanity checks.
+        if not (self.left.very_first() or self.right.very_first()) \
+           and (left_reset == False and right_reset == False):
+            lx, ly, lf, det_l, rx, ry, rf, det_r = self.sanity_check(
+                lx, ly, lf, refresh_l, rx, ry, rf, refresh_r
+            )
+        else:
+            det_l, det_r = refresh_l, refresh_r
 
         # If debug flag is set, we compose a warped perspective image
         # that is annotated with pixels contained in the lane lines.
         if debug:
             self.annotate_debug_img(lx, ly, lf, rx, ry, rf)
 
-        # Sanity check #1 - whether each lane line detected is
-        # close to the previously detected one.
-        # If the check fails, fall back to the previously detected lane line.
-        base_l = lf[0] * rows ** 2 + lf[1] * rows + lf[2]
-        base_r = rf[0] * rows ** 2 + rf[1] * rows + rf[2]
-        base_drift_limit = detector_params['base_drift_limit']
-        if self.left.detected \
-           and np.abs(base_l - self.left.base) > base_drift_limit:
-            lx, ly, lf = self.left.x, self.left.y, self.left.curr_fit
-            detected_l = False
-            self.log.debug("Left line discarded - too much drift"
-                           " (%s vs %s)" % (base_l, self.left.base))
-        if self.right.detected \
-           and np.abs(base_r - self.right.base) > base_drift_limit:
-            rx, ry, rf = self.right.x, self.right.y, self.right.curr_fit
-            detected_r = False
-            self.log.debug("Right line discarded - too much drift"
-                           " (%s vs %s)" % (base_r, self.right.base))
-
-        # Sanity check #2 - whether curvature of each line jumps beyone
-        # a certain threshold.
-        bound = detector_params['curvature_diff_limit']
-        if np.abs(lf[0] - self.left.curr_fit[0]) > bound:
-            lx, ly, lf = self.left.x, self.left.y, self.left.curr_fit
-            detected_l = False
-            self.log.debug(
-                "Left line discarded - change in curvature too steep"
-            )
-        if np.abs(rf[0] - self.right.curr_fit[0]) > bound:
-            rx, ry, rf = self.right.x, self.right.y, self.right.curr_fit
-            detected_r = False
-            self.log.debug(
-                "Left line discarded - change in curvature too steep"
-            )
-
-        # Sanity check #3 - whether the distance between the lane lines
-        # are within a reasonable bound.
-        mx = conversion_params['meters_per_pixel_x']
-        my = conversion_params['meters_per_pixel_y']
-        lane_width_limit = detector_params['lane_width_lower_bound']
-        if np.abs(base_l - base_r) < lane_width_limit:
-            center = cols / 2
-            # Discard the line closer to the center.
-            if np.abs(center - base_l) < np.abs(base_r - center):
-                lx, ly, lf = self.left.x, self.left.y, self.left.curr_fit
-                detected_l = False
-                self.log.debug(
-                    "Left lane discarded - lane too narrow (%s)" % \
-                    np.abs((center - base_l) * mx)
-                )
-            else:
-                rx, ry, rf = self.right.x, self.right.y, self.right.curr_fit
-                detected_r = False
-                self.log.debug(
-                    "Right lane discarded - lane too narrow (%s)" % \
-                    np.abs((base_r - center) * mx)
-                )
-
-        # Sanity check #4 - whether the two detected lane lines are
-        # approximately parallel.
-        # If the check fails, discard both the detected lane lines.
-        parallel_check_limit = detector_params['parallel_check_limit']
-        if np.abs(lf[0] - rf[0]) > parallel_check_limit:
-            lx, ly, lf = self.left.x, self.left.y, self.left.curr_fit
-            detected_l = False
-            rx, ry, rf = self.right.x, self.right.y, self.right.curr_fit
-            detected_r = False
-            self.log.debug("Both lines discarded - parallel check failed")
-
-        # Calculate the radius of curvature (in meters) for
-        # each of left & right lane lines, respectively.
-        slf0 = lf[0] * mx / my ** 2
-        slf1 = lf[1] * mx / my
-        srf0 = rf[0] * mx / my ** 2
-        srf1 = rf[1] * mx / my
-        # Calculate curvature at the bottom of the image.
-        left_curverad = (1 + (2 * slf0 * rows + slf1) ** 2) ** (3 / 2) \
-                      / np.abs(2 * slf0)
-        right_curverad = (1 + (2 * srf0 * rows + srf1) ** 2) ** (3 / 2) \
-                       / np.abs(2 * srf0)
-
         # Now we have the currently determined lane lines
         # (though possibly fallen back to the previous ones),
         # we update the lane line status.
-        self.left.update(
-            (rows, cols), lx, ly, lf,
-            left_curverad, detected_l
-        )
-        self.right.update(
-            (rows, cols), rx, ry, rf,
-            right_curverad, detected_r
-        )
+        self.left.update((rows, cols), lx, ly, lf, det_l)
+        # self.log.debug("Left lane updated with %s" % lf)
+        self.right.update((rows, cols), rx, ry, rf, det_r)
+        # self.log.debug("Right lane updated with %s" % rf)
+
+    def sanity_check(self, lx, ly, lf, refresh_l, rx, ry, rf, refresh_r):
+        params = detector_params['sanity_check_params']
+        sanity_check_base_drift = params['sanity_check_base_drift']
+        sanity_check_curvature_diff = params['sanity_check_curvature_diff']
+        sanity_check_lane_width = params['sanity_check_lane_width']
+        sanity_check_parallel = params['sanity_check_parallel']
+
+        rows, cols = self.debug_img.shape[:2]
+        # Set both det_l and det_r to True;
+        # later they can be set to False based on sanity checks.
+        det_l, det_r = True, True
+
+        # Sanity check #1 - whether each lane line detected is
+        # close to the previously detected one.
+        # If the check fails, fall back to the previously detected lane line.
+        if sanity_check_base_drift:
+            base_l = lf[0] * rows ** 2 + lf[1] * rows + lf[2]
+            base_r = rf[0] * rows ** 2 + rf[1] * rows + rf[2]
+            base_drift_limit = detector_params['base_drift_limit']
+            if np.abs(base_l - self.left.base) > base_drift_limit:
+                lx, ly, lf = self.left.x, self.left.y, self.left.curr_fit
+                det_l = False
+                self.log.debug("Left line discarded - too much drift"
+                            " (%s vs %s)" % (base_l, self.left.base))
+            if np.abs(base_r - self.right.base) > base_drift_limit:
+                rx, ry, rf = self.right.x, self.right.y, self.right.curr_fit
+                det_r = False
+                self.log.debug("Right line discarded - too much drift"
+                            " (%s vs %s)" % (base_r, self.right.base))
+
+        # Sanity check #2 - whether curvature of each line jumps beyone
+        # a certain threshold.
+        if sanity_check_curvature_diff:
+            bound = detector_params['curvature_diff_limit']
+            if not refresh_l and np.abs(lf[0] - self.left.curr_fit[0]) > bound:
+                lx, ly, lf = self.left.x, self.left.y, self.left.curr_fit
+                det_l = False
+                self.log.debug(
+                    "Left line discarded - change in curvature too steep"
+                )
+            if np.abs(rf[0] - self.right.curr_fit[0]) > bound:
+                rx, ry, rf = self.right.x, self.right.y, self.right.curr_fit
+                det_r = False
+                self.log.debug(
+                    "Left line discarded - change in curvature too steep"
+                )
+
+        # Sanity check #3 - whether the distance between the lane lines
+        # are within a reasonable bound.
+        if sanity_check_lane_width:
+            center = cols / 2
+            mx = conversion_params['meters_per_pixel_x']
+            my = conversion_params['meters_per_pixel_y']
+            bound_l = detector_params['lane_width_lower_bound']
+            bound_u = detector_params['lane_width_upper_bound']
+            if np.abs(base_l - base_r) < bound_l:
+                # Discard a line closer to the center.
+                if np.abs(center - base_l) < np.abs(base_r - center):
+                    lx, ly, lf = self.left.x, self.left.y, self.left.curr_fit
+                    det_l = False
+                    self.log.debug(
+                        "Left lane discarded - lane too narrow (%s)" % \
+                        np.abs((base_r - base_l) * mx)
+                    )
+                else:
+                    rx, ry, rf = self.right.x, self.right.y, self.right.curr_fit
+                    det_r = False
+                    self.log.debug(
+                        "Right lane discarded - lane too narrow (%s)" % \
+                        np.abs((base_r - base_l) * mx)
+                    )
+            elif np.abs(base_l - base_r) > bound_u:
+                # Discard a line farther from center.
+                if np.abs(center - base_l) > np.abs(base_r - center):
+                    lx, ly, lf = self.left.x, self.left.y, self.left.curr_fit
+                    det_l = False
+                    self.log.debug(
+                        "Left lane discarded - lane too wide (%.2f)" % \
+                        np.abs((base_r - base_l) * mx)
+                    )
+                else:
+                    rx, ry, rf = self.right.x, self.right.y, self.right.curr_fit
+                    det_r = False
+                    self.log.debug(
+                        "Right lane discarded - lane too wide (%.2f)" % \
+                        np.abs((base_r - base_l) * mx)
+                    )
+
+        # Sanity check #4 - whether the two detected lane lines are
+        # approximately parallel.
+        # If the check fails, discard one that's not fresh.
+        if sanity_check_parallel:
+            parallel_check_limit = detector_params['parallel_check_limit']
+            if np.abs(lf[0] - rf[0]) > parallel_check_limit:
+                if not refresh_l:
+                    lx, ly, lf = self.left.x, self.left.y, self.left.curr_fit
+                    det_l = False
+                    self.log.debug(
+                        "Left line discarded - parallel check failed"
+                    )
+                if not refresh_r:
+                    rx, ry, rf = self.right.x, self.right.y, self.right.curr_fit
+                    det_r = False
+                    self.log.debug(
+                        "Left line discarded - parallel check failed"
+                    )
+
+        # Return values are as follows:
+        return lx, ly, lf, det_l, rx, ry, rf, det_r
 
     # Paint drivable areas (between left & right lane lines).
     def paint_drivable(self, paint_color=(0, 255, 0)):
@@ -204,8 +242,8 @@ class ImgPipeline:
         # Cacluate the second-order polynomials for
         # left & right lane line approximation.
         y = np.linspace(0, overlay.shape[0] - 1, overlay.shape[0])
-        lx = lc[0] * y ** 2 + lc[1] * y + lc[2]
-        rx = rc[0] * y ** 2 + rc[1] * y + rc[2]
+        lx = self.left.average_fit(y)
+        rx = self.right.average_fit(y)
         # Collect points on left & right (detected) lane lines.
         pts_l = np.array([np.transpose(np.vstack([lx, y]))])
         pts_r = np.array([np.flipud(np.transpose(np.vstack([rx, y])))])
@@ -243,7 +281,7 @@ class ImgPipeline:
         offset_meters = offset * mx
 
         info_str = 'Raduis of Curvature = %5s(m)' % \
-                   np.int(curve_rad) if curve_rad < 100000 else '<inf>'
+                   (np.int(curve_rad) if curve_rad < 100000 else '<inf>')
         position = bottom_left
         img = cv2.putText(
             img, info_str, position,
@@ -253,7 +291,15 @@ class ImgPipeline:
         info_str = 'Vehicle is %.2fm %s of center' % (
             np.abs(offset_meters), 'left' if offset < 0 else 'right'
         )
-        position = (bottom_left[0], bottom_left[1] + 60)
+        position = (bottom_left[0], bottom_left[1] + 40)
+        img = cv2.putText(
+            img, info_str, position,
+            font, font_scale, font_color,
+            line_type
+        )
+        lane_width = np.abs(self.right.base - self.left.base) * mx
+        info_str = "Detected Lane Width = %.2fm" % lane_width
+        position = (bottom_left[0], bottom_left[1] + 80)
         img = cv2.putText(
             img, info_str, position,
             font, font_scale, font_color,
