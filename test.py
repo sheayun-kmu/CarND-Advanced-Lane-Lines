@@ -74,10 +74,6 @@ def test_warp(imgfile):
 def test_binarizer(imgfile):
     cam = get_calibrated_cam()
     img = mpimg.imread(imgfile)
-    '''
-    img = cv2.imread(imgfile)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    '''
     undistorted = cam.undistort(img)
     binarizer = Binarizer()
     bin_image = binarizer.binarize(undistorted)
@@ -92,37 +88,13 @@ def test_detector(imgfile):
     annotated = pipeline.annotate_info(annotated)
     # annotated = pipeline.debug_img
     visual_compare(pipeline.get_undistorted(), 'Undistorted Image',
-                   annotated, 'Lane Detected')
-
-def detection_pipeline(img, img_pipeline):
-    w = pipeline.preprocess(img)
-    pipeline.detect_lanes(w)
-    annotated = pipeline.paint_drivable()
-    # annotated = pipeline.debug_img
-    annotated = pipeline.annotate_info(annotated)
-    return annotated
+                   annotated, 'Lanes Detected')
 
 if __name__ == '__main__':
-    if False:
-        test_img_file = './test_images/first.jpg'
-        # test_undistort(test_img_file)
-        # test_binarizer(test_img_file)
-        # test_warp('./test_images/straight_lines1.jpg')
-        # test_warp('./test_images/straight_lines2.jpg')
-        # test_warp(test_img_file)
-        test_detector(test_img_file)
-    else:
-        import os
-        from moviepy.editor import VideoFileClip
-        # test_video_file = './project_video.mp4'
-        # test_video_file = './20.mp4'
-        test_video_file = './challenge_video.mp4'
-        pipeline = ImgPipeline()
-        detector_l = LaneDetector()
-        detector_r = LaneDetector()
-        output_pathname = os.path.join(os.getcwd(), "output.mp4")
-        clip = VideoFileClip(test_video_file)
-        output_clip = clip.fl_image(
-            lambda x:detection_pipeline(x, pipeline)
-        )
-        output_clip.write_videofile(output_pathname, audio=False)
+    test_img_file = './test_images/test1.jpg'
+    test_undistort(test_img_file)
+    test_binarizer(test_img_file)
+    test_warp('./test_images/straight_lines1.jpg')
+    test_warp('./test_images/straight_lines2.jpg')
+    test_warp(test_img_file)
+    test_detector(test_img_file)
