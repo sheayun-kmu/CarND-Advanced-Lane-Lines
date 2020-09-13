@@ -4,6 +4,7 @@ logging.basicConfig(
     format=u'%(asctime)-15s [%(name)s] %(levelname)s: %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
 )
+import os
 import glob
 import numpy as np
 import cv2
@@ -42,6 +43,12 @@ def test_undistort(imgfile):
     cam = get_calibrated_cam()
     img = mpimg.imread(imgfile)
     undistorted = cam.undistort(img)
+    basename = os.path.basename(imgfile)
+    filename, extension = os.path.splitext(basename)
+    output_pathname = os.path.join(
+        os.getcwd(), "output_images", filename + '_undistorted' + extension
+    )
+    plt.imsave(output_pathname, undistorted)
     visual_compare(img, 'Original Image', undistorted, 'Undistorted Image')
 
 def test_warp(imgfile):
@@ -69,6 +76,12 @@ def test_warp(imgfile):
     warped = cam.warp(undistorted)
     undistorted = cv2.polylines(undistorted, [src], True, (255, 0, 0), 2)
     warped = cv2.polylines(warped, [dst], True, (255, 0, 0), 2)
+    basename = os.path.basename(imgfile)
+    filename, extension = os.path.splitext(basename)
+    output_pathname = os.path.join(
+        os.getcwd(), "output_images", filename + '_warped' + extension
+    )
+    plt.imsave(output_pathname, warped)
     visual_compare(undistorted, 'Undistorted Image', warped, 'Warped Image')
 
 def test_binarizer(imgfile):
@@ -77,6 +90,12 @@ def test_binarizer(imgfile):
     undistorted = cam.undistort(img)
     binarizer = Binarizer()
     bin_image = binarizer.binarize(undistorted)
+    basename = os.path.basename(imgfile)
+    filename, extension = os.path.splitext(basename)
+    output_pathname = os.path.join(
+        os.getcwd(), "output_images", filename + '_binarized' + extension
+    )
+    plt.imsave(output_pathname, bin_image)
     visual_compare(img, 'Original Image', bin_image, 'Binarized Image')
 
 def test_detector(imgfile):
@@ -87,6 +106,12 @@ def test_detector(imgfile):
     annotated = pipeline.paint_drivable()
     annotated = pipeline.annotate_info(annotated)
     # annotated = pipeline.debug_img
+    basename = os.path.basename(imgfile)
+    filename, extension = os.path.splitext(basename)
+    output_pathname = os.path.join(
+        os.getcwd(), "output_images", filename + '_annotated' + extension
+    )
+    plt.imsave(output_pathname, annotated)
     visual_compare(pipeline.get_undistorted(), 'Undistorted Image',
                    annotated, 'Lanes Detected')
 
