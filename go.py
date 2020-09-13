@@ -21,7 +21,7 @@ def convert_video(video_input_filename):
     basename = os.path.basename(video_input_filename)
     filename, extension = os.path.splitext(basename)
     output_pathname = os.path.join(
-        os.getcwd(), "output_images", filename + '_output.mp4'
+        os.getcwd(), "output_images", filename + '_output' + extension
     )
     pipeline = ImgPipeline()
     clip = VideoFileClip(video_input_filename)
