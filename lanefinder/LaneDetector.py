@@ -21,7 +21,7 @@ class LaneDetector:
     # Load parameters from configuration file.
     def __init__(self):
         self.log = logging.getLogger(__name__)
-        self.log.setLevel(logging.DEBUG)
+        self.log.setLevel(logging.WARN)
         params = detector_params['sliding_window_params']
         self.nwindows = params['nwindows']
         self.margin = params['margin']

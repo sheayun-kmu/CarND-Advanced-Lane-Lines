@@ -26,7 +26,7 @@ class ImgPipeline:
     # Calibrate camera & setup perspective transformation parameters.
     def __init__(self, calib_image_files=None):
         self.log = logging.getLogger(__name__)
-        self.log.setLevel(logging.DEBUG)
+        self.log.setLevel(logging.WARN)
         # Get a calibrated camera model for distortion correction.
         self.cam = CamModel()
         if not calib_image_files:
@@ -280,7 +280,7 @@ class ImgPipeline:
         offset = img.shape[1] / 2 - center
         offset_meters = offset * mx
 
-        info_str = 'Raduis of Curvature = %5s(m)' % \
+        info_str = 'Radius of Curvature = %5s(m)' % \
                    (np.int(curve_rad) if curve_rad < 100000 else '<inf>')
         position = bottom_left
         img = cv2.putText(

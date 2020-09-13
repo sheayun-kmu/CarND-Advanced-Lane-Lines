@@ -8,7 +8,7 @@ class LaneLine:
 
     def __init__(self):
         self.log = logging.getLogger(__name__)
-        self.log.setLevel(logging.DEBUG)
+        self.log.setLevel(logging.WARN)
         # whether this line has been detected previously
         self.detected = False
         # coordinates of pixels contained in lane lines (in warped space)
