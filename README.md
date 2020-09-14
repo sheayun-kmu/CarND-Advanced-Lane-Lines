@@ -1,86 +1,100 @@
 ## Advanced Lane Finding
 
-writeup to be written here
+[//]: # (Image References)
+
+[undistorted]: ./doc_images/undistorted.png
+[warped]: ./doc_images/warped.png
+[binarized]: ./doc_images/binarized.png
+[detected]: ./doc_images/detected.png
+[detected_debug]: ./doc_images/detected_debug.png
+
+### Goals of the project:
 
 
-memo
+1. Detect lane lines in a still image.
+2. Detect lane lines in a video, which is a sequence of still images. However, unlike the above, apply heuristics to search for lane lines based on previously detected ones.
+
 ---
 
-* docker command
+### Rubric Points
 
-```shell
-docker run -it --rm --entrypoint "/run.sh" -p 8888:8888 -v `pwd`:/src udacity/carnd-term1-starter-kit
-```
+#### Camera Calibration
 
-2020-09-08, define `class CamModel` and implement `calibrate()` and `undistort()`
+Images contained in directory `camera_cal` are used for calibrating the camera. Chessboard corners are identified (where three out of a total of 20 images are rejected because they do not contain 9 x 6 corners like others), and the corresponding grid points are mapped. Using `cv2`'s `clibrateCamera()` function, transformation parameters are obtained. The following figure shows the calibration result obtained from `camera_cal/caslibration1.jpg`.
 
-* rubric
-	- https://review.udacity.com/#!/rubrics/1966/view
+![undistorted.png][undistorted]
 
+#### Pipeline (single images)
 
-pipeline
----
-1. Initialize
-	- calibrate camera
-	- setup warp parameters
+Given a still image, it is preprocessed for lane detection. The steps are: (1) distortion correction, (2) binarization (color & gradient thresholding), and (3) warp to a top-down (bird's eye view) perspective. 
 
-1. Process
-	- distortion correction
-	- color & gradient threshold (binarize)
-	- perspective transform
+First, the undistorted image is binarized using color and gradient thresholding. The original image is converted into the HLS color space, where the S channel is extracted is used for color thresholding and the L channel for calculating gradient along X-axis is computed and then thresholded. With these two combined, the resulting binary image has pixels in areas that are likely to have lane lines (of course with noises). The result from binarizing `test_images/test1.jpg` is shown below:
 
-1. Find lane lines & compute curvature radius
-	- detect lane lines
-	- determine lane curvature
+![binarized.png][binarized]
 
-1. Visualization
-	- visualize & compare
+For the perspective transform, two straight-line images (contained in `test_images`) are used, where drawing of a trapezoid is repeated for both images and the coordinates of four corner points are recorded in the pipeline's parameter set. The result (used for the purpose of basic verification by human eyes) from transforming `test_images/test1.jpg` is shown below (depicted in color for clear visualization, although the perspective transformation follows binarization described above):
 
+![warped.png][warped]
 
+From the binarized and then warped image, two (probable) lane lines are detected based on the sliding window algorithm: Beginning from the histogram peaks (the X-axis coordinate where the most candidate lane line pixels are located), a sliding window is moved along the candidate pixel distribution, collecting (assumed to be) valid lane line pixels. The curvature of each lane line is fit to such pixels. The radius of the curvature is calculated for future use in determining the vehicle's trajectory.
 
+For the purpose of monitoring and debugging, the undistorted image is annotated by overlaying lane line detection information. First, the area between left and right lines are painted green, then candidate pixels are sprinkled with red (left) and blue (right) pixels. Second, textual information (radius of curvature, vehicle's relative position, and lane width) is displayed on the image. The result from annotating `test_images/test1.jpg` is shown below:
 
+![detected.png][detected]
 
+While this image is used for displaying the detection results for test video files, sometimes a comprehensive image for lane detection process is needed. To this end, an extra image for debugging purposes is taken (kept inside the software) where lane line pixels determined by the algorithm is visualized and the parabola fit is depicted in green, such as (for `test_images/test1.jpg`):
 
+![detected_debug.png][detected_debug]
 
+- Pipeline (video)
 
+In applying lane line detection algorithm to a video file, the same approach is used as in detecting lane lines from a still image. However, one important difference is that we incorporate a separate algorithm that searches for lane line pixels around the previously fit polynomial, since we have a sequence of gradually changing images.
 
+However, in detecting moving (though actually what moves is the camera, not the lane lines) lane lines, we might lose track of one or both of the left and right lane lines. Therefore, we perform the following sanity checks:
 
+	1. whether the detected line is reasonably close to the previously detected line,
+	2. whether the curvature of each line abruptly jumps from the previous one by a certain threshold,
+	3. whether the distance between the left and the right lane lines (the lane width) is within a reasonable bound, and
+	4. whether the two detected lane lines are approximately parallel.
 
+If any of the above check fails for a certain number of consecutive frames, we reset the current guess of trying to find the lane line pixels around the previously fit polynomial and resort to the sliding window algorithm that begins from the histogram peaks.
 
+The three test input videos are fed to the pipeline, and the output video for each of them is saved under `output_images` with respective filenames appended by `_output`.
 
-
-In this project, your goal is to write a software pipeline to identify the lane boundaries in a video, but the main output or product we want you to create is a detailed writeup of the project.  Check out the [writeup template](https://github.com/udacity/CarND-Advanced-Lane-Lines/blob/master/writeup_template.md) for this project and use it as a starting point for creating your own writeup.  
-
-Creating a great writeup:
----
-A great writeup should include the rubric points as well as your description of how you addressed each point.  You should include a detailed description of the code used in each step (with line-number references and code snippets where necessary), and links to other supporting documents or external references.  You should include images in your writeup to demonstrate how your code works with examples.  
-
-All that said, please be concise!  We're not looking for you to write a book here, just a brief description of how you passed each rubric point, and references to the relevant code :). 
-
-You're not required to use markdown for your writeup.  If you use another method please just submit a pdf of your writeup.
-
-The Project
 ---
 
-The goals / steps of this project are the following:
+### Implementation Details
 
-* Compute the camera calibration matrix and distortion coefficients given a set of chessboard images.
-* Apply a distortion correction to raw images.
-* Use color transforms, gradients, etc., to create a thresholded binary image.
-* Apply a perspective transform to rectify binary image ("birds-eye view").
-* Detect lane pixels and fit to find the lane boundary.
-* Determine the curvature of the lane and vehicle position with respect to center.
-* Warp the detected lane boundaries back onto the original image.
-* Output visual display of the lane boundaries and numerical estimation of lane curvature and vehicle position.
+The lane line detection software is written in Python, which is first tested and debugged/tuned on a local computer with all the required library packages are installed. Then it is tested on a local Jupyter server, after which all the source files and the notebook itself are uploaded onto the Udacity's Jupyter Notebook server. Again, for verification purposes, the notebook is run on the server and results are collected.
 
-The images for camera calibration are stored in the folder called `camera_cal`.  The images in `test_images` are for testing your pipeline on single frames.  If you want to extract more test images from the videos, you can simply use an image writing method like `cv2.imwrite()`, i.e., you can read the video in frame by frame as usual, and for frames you want to save for later you can write to an image file.  
+The source code is partitioned into several modules, which are stored in the Python package (and thus directory) `lanefinder`:
 
-To help the reviewer examine your work, please save examples of the output from each stage of your pipeline in the folder called `output_images`, and include a description in your writeup for the project of what each image shows.    The video called `project_video.mp4` is the video your pipeline should work well on.  
+* `params.py` - collection of parameters used in lane detection and visualization
+* `ImgPipeline.py` - main module for processing the image and detecting lane lines
+* `LaneLine.py` - abstracted class representation of lane line detection status (one for each of left and right lane lines is instantiated)
+* `LaneDetector.py` - a detector class that implements (1) the sliding window algorithm, and (2) the search for lane line pixels around the previously fit polynomial
+* `CamModel.py` - camera model that captures the distortion correction matrix and perspective transforms (warp and unwarp)
+* `Binarizer.py` - binarizer that performs color and gradient thresholding
 
-The `challenge_video.mp4` video is an extra (and optional) challenge for you if you want to test your pipeline under somewhat trickier conditions.  The `harder_challenge.mp4` video is another optional challenge and is brutal!
+Besides, two driver scripts are written:
 
-If you're feeling ambitious (again, totally optional though), don't stop there!  We encourage you to go out and take video of your own, calibrate your camera and show us how you would implement this project from scratch!
+* `test.py` - test functions for each stage of the pipeline; the notebook runs each step and produces visual output for monitoring purposes.
+* `go.py` - run the lane line detection pipeline for each of the input video files (`project_video.mp4`, `challenge_video.mp4`, `harder_challenge_video.mp4`); not used by the notebook.
 
-## How to write a README
-A well written README file can enhance your project and portfolio.  Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
+---
 
+### Discussion
+
+For basic test image (`test_images/test1.jpg`), the lane line detector works well. For debugging and testing purposes, several other images have been taken from the video files (which are not included in the repository), and results on some were successful and on others were not. Tuning the binary thresholding parameters is not a simple job.
+
+Radius of curvature, vehicle position, and lane width are calculated using a very rough approximation of "meters per pixel" calculation by a rule of thumb. Fine-tuning the parameters should not be a big deal, though (a matter of specifying a value as accurately calculated as possible - not affecting any other part of the algorithm).
+
+For most of the part of `project_video.mp4`, the lane lines were successfully detected. Sanity checks seldom failed, depending on the parameters (specifed in `params.py`). Lighting condition does not change much and we do not have any steep turns (probably recorded on a highway).
+
+For `challenge_video.mp4`, the algorithm is often confused by something like overpavement(?) in the lane. Along this crack(?), the surface of either side has very different color which makes the x-gradient high, resulting in a mistakenly detected lane line. Another difficult thing to handle is the shadow on the left-hand side with high contrast. Nonetheless, the painted area in the output video does not go astry too much since this road is nearly straight (also probably recorded on a highway).
+
+However, for `harder_challenge_video.mp4`, the algorithm performs quite badly. Lighting condition change a lot (mainly due to the trees alongside the road and strong sunlight making high contrast), and turns are steep. Especially, when the car enters a very curvy segment, the camera loses sight of the right lane line entirely, where this algorithm does not know what to do. For possible remedies, the following issues could be addressed:
+
+* Fine-tune binary thresholding - do not rely on fixed threshold paramters; use adaptive thresholding paramters depending on the current image status.
+* More precise determination of lane line pixels and non-lane line pixels - cleverer heuristics to discriminate pixels that are part of the lines and those that are not; for example, take into account the fact that lane lines do not change direction within a very short span.
+* More robust detection algorithm - if one of the lane lines are out of the field of view, for example, determine which of the left and right lane line should be visible and adjust the detection algorithm accordingly.
