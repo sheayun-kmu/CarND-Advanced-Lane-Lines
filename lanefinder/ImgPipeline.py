@@ -153,7 +153,7 @@ class ImgPipeline:
                 self.log.debug("Right line discarded - too much drift"
                             " (%s vs %s)" % (base_r, self.right.base))
 
-        # Sanity check #2 - whether curvature of each line jumps beyone
+        # Sanity check #2 - whether curvature of each line jumps beyond
         # a certain threshold.
         if sanity_check_curvature_diff:
             bound = detector_params['curvature_diff_limit']
@@ -171,7 +171,7 @@ class ImgPipeline:
                 )
 
         # Sanity check #3 - whether the distance between the lane lines
-        # are within a reasonable bound.
+        # is within a reasonable bound.
         if sanity_check_lane_width:
             center = cols / 2
             mx = conversion_params['meters_per_pixel_x']
